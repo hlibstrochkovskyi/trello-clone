@@ -7,6 +7,7 @@ import com.example.trello_clone.repository.TaskColumnRepository;
 import com.example.trello_clone.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.trello_clone.dto.MoveTaskRequest;
 
 import java.util.List;
 
@@ -45,5 +46,51 @@ public class TaskService {
         task.setPosition(newPosition);
 
         return taskRepository.save(task);
+    }
+
+
+    @Transactional
+    public Task moveTask(Long taskId, MoveTaskRequest request) {
+        // 1. Find the problem
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        TaskColumn oldColumn = task.getColumn();
+        TaskColumn newColumn = taskColumnRepository.findById(request.getTargetColumnId())
+                .orElseThrow(() -> new RuntimeException("Target column not found"));
+
+        Integer oldPosition = task.getPosition();
+        Integer newPosition = request.getNewPosition();
+
+        // 2. Scenario A: Moving to ANOTHER column
+        if (!oldColumn.getId().equals(newColumn.getId())) {
+            // A.1: Close the "hole" in the old column (move all tasks below up)
+            taskRepository.decrementPositionsAfter(oldColumn.getId(), oldPosition);
+
+            // A.2: Free up space in the new column (move all tasks below down)
+            taskRepository.incrementPositionsFrom(newColumn.getId(), newPosition);
+
+            // A.3: Update the task itself
+            task.setColumn(newColumn);
+            task.setPosition(newPosition);
+
+        } else {
+            // 3. Scenario B: Moving WITHIN the same column
+            if (newPosition < oldPosition) {
+                // Move the task UP (which means the rest of the tasks in the range need to be moved DOWN)
+                taskRepository.incrementPositionsBetween(oldColumn.getId(), newPosition, oldPosition);
+            } else if (newPosition > oldPosition) {
+                // Move the task DOWN (which means the rest of the tasks in the range need to be moved UP)
+                taskRepository.decrementPositionsBetween(oldColumn.getId(), oldPosition, newPosition);
+            }
+            task.setPosition(newPosition);
+        }
+
+        return taskRepository.save(task);
+    }
+
+
+    public List<Task> getTasksByColumnId(Long columnId) {
+        return taskRepository.findByColumnIdOrderByPositionAsc(columnId);
     }
 }

@@ -5,6 +5,9 @@ import com.example.trello_clone.entity.Task;
 import com.example.trello_clone.service.TaskService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import com.example.trello_clone.dto.MoveTaskRequest;
+
 
 @RestController
 @RequestMapping("/api/columns/{columnId}/tasks")
@@ -22,4 +25,19 @@ public class TaskController {
         Task task = taskService.createTask(columnId, request);
         return ResponseEntity.ok(task);
     }
+
+
+    @GetMapping
+    public ResponseEntity<List<Task>>getTasks(@PathVariable Long columnId) {
+        return ResponseEntity.ok(taskService.getTasksByColumnId(columnId));
+    }
+
+    @PutMapping("/{taskId}/move")
+    public ResponseEntity<Task> moveTask(@PathVariable Long columnId, // we don't use it, but it's in the URL
+                                         @PathVariable Long taskId,
+                                         @RequestBody MoveTaskRequest request) {
+        Task updatedTask = taskService.moveTask(taskId, request);
+        return ResponseEntity.ok(updatedTask);
+    }
+
 }
