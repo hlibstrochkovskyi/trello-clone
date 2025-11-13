@@ -14,6 +14,8 @@ import java.util.Date;
 public class JwtUtils {
 
     // Get the secret key and lifetime from application.properties    @Value("${app.jwt.secret}")
+
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration}")
