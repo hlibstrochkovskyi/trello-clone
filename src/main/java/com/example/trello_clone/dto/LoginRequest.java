@@ -1,12 +1,23 @@
 package com.example.trello_clone.dto;
 
-import lombok.Data;
-
-@Data
 public class LoginRequest {
-    // The username sent from the login form
     private String username;
-
-    // The password sent from the login form
     private String password;
+
+    // Manual Getters and Setters
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }
