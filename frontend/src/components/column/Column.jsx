@@ -3,14 +3,22 @@ import { Droppable } from '@hello-pangea/dnd';
 import TaskCard from '../task/TaskCard';
 import CreateTaskForm from '../task/CreateTaskForm';
 
-const Column = ({ column }) => {
+// ACCEPT: dragHandleProps for DND column movement
+const Column = ({ column, dragHandleProps }) => {
   const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div style={styles.column}>
-      <h3 style={styles.header}>{column.title}</h3>
+      {/* APPLY dragHandleProps to the header to make it the drag handle */}
+      <h3 
+        style={styles.header}
+        {...dragHandleProps} 
+      >
+        {column.title}
+      </h3>
       
-      <Droppable droppableId={column.id.toString()}>
+      {/* Droppable area for tasks (type="task") */}
+      <Droppable droppableId={column.id.toString()} type="task">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -29,7 +37,7 @@ const Column = ({ column }) => {
         )}
       </Droppable>
 
-      {/* Блок создания задачи */}
+      {/* Task creation block */}
       {isAdding ? (
         <CreateTaskForm columnId={column.id} setAdding={setIsAdding} />
       ) : (
@@ -51,7 +59,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: 'fit-content',
-    maxHeight: '100%', // to prevent overflow
+    maxHeight: '100%',
   },
   header: {
     marginBottom: '12px',
@@ -59,13 +67,14 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     color: '#172b4d',
+    cursor: 'pointer', // Indicates it's draggable
   },
   taskList: {
     flexGrow: 1,
     display: 'flex',
     flexDirection: 'column',
     marginBottom: '8px',
-    overflowY: 'auto', // Scroll if tasks exceed column height
+    overflowY: 'auto',
   },
   addBtn: {
     padding: '8px',

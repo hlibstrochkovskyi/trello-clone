@@ -51,7 +51,7 @@ public class TaskService {
 
     @Transactional
     public Task moveTask(Long taskId, MoveTaskRequest request) {
-        // 1. Find the problem
+        // 1. Find the task and columns
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
@@ -62,30 +62,38 @@ public class TaskService {
         Integer oldPosition = task.getPosition();
         Integer newPosition = request.getNewPosition();
 
-        // 2. Scenario A: Moving to ANOTHER column
-        if (!oldColumn.getId().equals(newColumn.getId())) {
-            // A.1: Close the "hole" in the old column (move all tasks below up)
-            taskRepository.decrementPositionsAfter(oldColumn.getId(), oldPosition);
-
-            // A.2: Free up space in the new column (move all tasks below down)
-            taskRepository.incrementPositionsFrom(newColumn.getId(), newPosition);
-
-            // A.3: Update the task itself
-            task.setColumn(newColumn);
-            task.setPosition(newPosition);
-
-        } else {
-            // 3. Scenario B: Moving WITHIN the same column
-            if (newPosition < oldPosition) {
-                // Move the task UP (which means the rest of the tasks in the range need to be moved DOWN)
-                taskRepository.incrementPositionsBetween(oldColumn.getId(), newPosition, oldPosition);
-            } else if (newPosition > oldPosition) {
-                // Move the task DOWN (which means the rest of the tasks in the range need to be moved UP)
-                taskRepository.decrementPositionsBetween(oldColumn.getId(), oldPosition, newPosition);
-            }
-            task.setPosition(newPosition);
+        if (newPosition.equals(oldPosition) && oldColumn.getId().equals(newColumn.getId())) {
+            return task;
         }
 
+        // --- ВАЖНЫЙ ИСПРАВИТЕЛЬНЫЙ ШАГ: Временно убираем задачу из диапазона ---
+        // Устанавливаем временную позицию -1, чтобы избежать конфликта UNIQUE constraint
+        // во время выполнения пакетного UPDATE соседних задач.
+        task.setPosition(-1);
+        taskRepository.save(task);
+
+        // 2. Сценарий А: Перемещение в ДРУГУЮ колонку
+        if (!oldColumn.getId().equals(newColumn.getId())) {
+            // А.1: Закрываем "дырку" в старой колонке (все задачи ниже поднимаем вверх)
+            taskRepository.decrementPositionsAfter(oldColumn.getId(), oldPosition);
+
+            // А.2: Освобождаем место в новой колонке (все задачи ниже сдвигаем вниз)
+            taskRepository.incrementPositionsFrom(newColumn.getId(), newPosition);
+
+        } else {
+            // 3. Сценарий Б: Перемещение ВНУТРИ той же колонки
+            if (newPosition < oldPosition) {
+                // Движение ВВЕРХ: Shift tasks в диапазоне [newPosition, oldPosition - 1] ВНИЗ (+1)
+                taskRepository.incrementPositionsBetween(oldColumn.getId(), newPosition, oldPosition - 1);
+            } else if (newPosition > oldPosition) {
+                // Движение ВНИЗ: Shift tasks в диапазоне [oldPosition + 1, newPosition] ВВЕРХ (-1)
+                taskRepository.decrementPositionsBetween(oldColumn.getId(), oldPosition + 1, newPosition);
+            }
+        }
+
+        // 4. Устанавливаем колонке итоговую позицию и сохраняем
+        task.setColumn(newColumn);
+        task.setPosition(newPosition);
         return taskRepository.save(task);
     }
 

@@ -1,24 +1,23 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DragDropContext } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import useBoardStore from '../store/boardStore';
 import Column from '../components/column/Column';
-// IMPORT: Importing the new component for adding columns
 import CreateColumnSection from '../components/column/CreateColumnSection'; 
 
 const BoardPage = () => {
   const { boardId } = useParams();
   const navigate = useNavigate();
-  const { currentBoard, isLoading, fetchBoardDetails, moveTask } = useBoardStore();
+  // IMPORTANT: Ensure moveColumn is included
+  const { currentBoard, isLoading, fetchBoardDetails, moveTask, moveColumn } = useBoardStore();
 
   useEffect(() => {
     if (boardId) fetchBoardDetails(boardId);
   }, [boardId]);
 
   const onDragEnd = (result) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source, draggableId, type } = result;
 
-    // if no destination, do nothing
     if (!destination) return;
     if (
       destination.droppableId === source.droppableId && 
@@ -26,17 +25,26 @@ const BoardPage = () => {
     ) {
       return;
     }
-
-    // call the moveTask action from the store (Optimistic Update)
-    moveTask(
-      draggableId,
-      source.droppableId,
-      destination.droppableId,
-      source.index,
-      destination.index
-    );
-
-    // console.log("Moved locally! Backend sync handled inside store.");
+    
+    // --- 1. COLUMN MOVEMENT LOGIC ---
+    if (type === 'column') {
+      const columnId = Number(draggableId);
+      // Call store function to optimistically update and send API call
+      moveColumn(columnId, source.index, destination.index);
+      return;
+    }
+    
+    // --- 2. TASK MOVEMENT LOGIC ---
+    if (type === 'task') {
+        moveTask(
+          draggableId,
+          source.droppableId,
+          destination.droppableId,
+          source.index,
+          destination.index
+        );
+        return;
+    }
   };
 
   if (isLoading) return <div style={{color: 'white'}}>Загрузка...</div>;
@@ -50,14 +58,38 @@ const BoardPage = () => {
            <h2 style={styles.boardTitle}>{currentBoard.name || `Доска #${currentBoard.id}`}</h2>
         </div>
         
-        <div style={styles.boardLayout}>
-          {currentBoard.columns.map((column) => (
-            <Column key={column.id} column={column} />
-          ))}
-          
-          {/* NEW: Component for adding a new column */}
-          <CreateColumnSection boardId={currentBoard.id} />
-        </div>
+        {/* Droppable area for the entire list of columns (type="column") */}
+        <Droppable droppableId="all-columns" direction="horizontal" type="column"> 
+            {(provided) => (
+                <div 
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    style={styles.boardLayout}
+                >
+                    {currentBoard.columns.map((column, index) => (
+                        // Each column is draggable
+                        <Draggable key={column.id} draggableId={column.id.toString()} index={index}>
+                            {(provided) => (
+                                <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    // The column component now receives dragHandleProps for its header
+                                >
+                                    <Column 
+                                        column={column} 
+                                        dragHandleProps={provided.dragHandleProps}
+                                    />
+                                </div>
+                            )}
+                        </Draggable>
+                    ))}
+                    {provided.placeholder}
+                    
+                    {/* Column creation button */}
+                    <CreateColumnSection boardId={currentBoard.id} />
+                </div>
+            )}
+        </Droppable>
       </div>
     </DragDropContext>
   );

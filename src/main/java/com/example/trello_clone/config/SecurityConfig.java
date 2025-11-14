@@ -31,13 +31,29 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
-                .cors(AbstractHttpConfigurer::disable) // Disable CORS (for now)
+                .csrf(AbstractHttpConfigurer::disable)
+
+                .cors(cors -> cors.configurationSource(request -> {
+                    var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfiguration.setAllowedOrigins(java.util.List.of("http://localhost:5173"));
+                    corsConfiguration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
+                    corsConfiguration.setAllowCredentials(true);
+                    return corsConfiguration;
+                }))
+
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow Login/Register
-                        .anyRequest().authenticated() // Protect everything else
+                        .requestMatchers("/api/auth/**").permitAll()        // Login/Registration open
+                        .requestMatchers("/error").permitAll()              // Error page open
+
+
+                        .requestMatchers("/api/boards/**", "/api/columns/**", "/api/tasks/**").authenticated()
+
+                        .anyRequest().authenticated()
                 );
+        // ============================================
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
