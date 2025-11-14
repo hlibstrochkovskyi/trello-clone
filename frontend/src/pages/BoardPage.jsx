@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext } from '@hello-pangea/dnd';
 import useBoardStore from '../store/boardStore';
 import Column from '../components/column/Column';
+// IMPORT: Importing the new component for adding columns
+import CreateColumnSection from '../components/column/CreateColumnSection'; 
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -25,7 +27,7 @@ const BoardPage = () => {
       return;
     }
 
-    // call the moveTask action from the store
+    // call the moveTask action from the store (Optimistic Update)
     moveTask(
       draggableId,
       source.droppableId,
@@ -34,9 +36,7 @@ const BoardPage = () => {
       destination.index
     );
 
-    // TODO: Here we would sync with backend
-    // api.put(...)
-    console.log("Moved locally! Backend sync coming next.");
+    // console.log("Moved locally! Backend sync handled inside store.");
   };
 
   if (isLoading) return <div style={{color: 'white'}}>Загрузка...</div>;
@@ -54,6 +54,9 @@ const BoardPage = () => {
           {currentBoard.columns.map((column) => (
             <Column key={column.id} column={column} />
           ))}
+          
+          {/* NEW: Component for adding a new column */}
+          <CreateColumnSection boardId={currentBoard.id} />
         </div>
       </div>
     </DragDropContext>

@@ -32,12 +32,19 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
+
+            if (jwt != null) {
+                System.out.println("DEBUG: Incoming JWT Token: " + jwt.substring(0, 15) + "...");
+                System.out.println("DEBUG: Token Length: " + jwt.length());
+            }
+
             // If the token exists and is valid
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
                 // Load user details from the database
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                System.out.println("DEBUG: Token validated for user: " + username);
 
                 // Create an authentication object
                 UsernamePasswordAuthenticationToken authentication =

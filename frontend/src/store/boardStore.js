@@ -50,27 +50,91 @@ const useBoardStore = create((set, get) => ({
     }
   },
 
-  moveTask: (taskId, sourceColId, destColId, sourceIndex, destIndex) => {
-    set((state) => {
-      // Deep copy the board to avoid direct mutation
-      const board = JSON.parse(JSON.stringify(state.currentBoard));
+  // Move a task (Optimistic Update + API Sync)
+  moveTask: async (taskId, sourceColId, destColId, sourceIndex, destIndex) => {
+    // 1. Save previous state for rollback in case of error
+    const previousBoard = JSON.parse(JSON.stringify(get().currentBoard));
 
-      // 1. Find the source and destination columns
+    // 2. Optimistically update the UI
+    set((state) => {
+      const board = JSON.parse(JSON.stringify(state.currentBoard));
       const sourceCol = board.columns.find(c => c.id.toString() === sourceColId.toString());
       const destCol = board.columns.find(c => c.id.toString() === destColId.toString());
 
       // Safety check
       if (!sourceCol || !destCol) return {};
 
-      // 2. Remove the task from the source column
+      // Remove from source and insert into destination
       const [movedTask] = sourceCol.tasks.splice(sourceIndex, 1);
-
-      // 3. Insert the task into the destination column at the new position
       destCol.tasks.splice(destIndex, 0, movedTask);
 
-      // 4. Update the state immediately
       return { currentBoard: board };
     });
+
+    // 3. Send request to the backend
+    try {
+      // URL structure matches TaskController: /api/columns/{columnId}/tasks/{taskId}/move
+      // We use sourceColId for the path, although logic uses request body
+      await api.put(`/columns/${sourceColId}/tasks/${taskId}/move`, {
+        targetColumnId: Number(destColId),
+        newPosition: destIndex
+      });
+      // Success: do nothing, UI is already updated
+    } catch (error) {
+      console.error("Failed to move task on server:", error);
+      // 4. Revert changes on error
+      set({ currentBoard: previousBoard });
+      alert("Failed to save move. Reverting changes.");
+    }
+  },
+
+  // Create a new task
+  createTask: async (columnId, taskData) => {
+    try {
+        // POST /api/columns/{columnId}/tasks
+        const response = await api.post(`/columns/${columnId}/tasks`, taskData);
+        const newTask = response.data;
+
+        // Update local state immediately
+        set((state) => {
+            const board = JSON.parse(JSON.stringify(state.currentBoard));
+            const column = board.columns.find(c => c.id === columnId);
+            if (column) {
+                if (!column.tasks) column.tasks = [];
+                column.tasks.push(newTask); // Add new task to the end
+            }
+            return { currentBoard: board };
+        });
+    } catch (error) {
+        console.error("Error creating task:", error);
+        alert("Failed to create task");
+    }
+  },
+  
+  // --- NEW: Create a new column ---
+  createColumn: async (boardId, requestData) => {
+    try {
+        // POST /api/boards/{boardId}/columns (Controller: ColumnController)
+        const response = await api.post(`/boards/${boardId}/columns`, requestData);
+        const newColumn = response.data;
+        
+        // Frontend must manually add the tasks array
+        newColumn.tasks = []; 
+
+        // Update local state by adding the new column to the board's columns list
+        set((state) => {
+            const board = JSON.parse(JSON.stringify(state.currentBoard));
+            
+            if (board) {
+                if (!board.columns) board.columns = [];
+                board.columns.push(newColumn);
+            }
+            return { currentBoard: board };
+        });
+    } catch (error) {
+        console.error("Error creating column:", error);
+        alert("Failed to create column");
+    }
   }
 }));
 

@@ -29,19 +29,19 @@ public class TaskService {
         TaskColumn column = taskColumnRepository.findById(columnId)
                 .orElseThrow(() -> new RuntimeException("Column not found"));
 
-        // 2. Calculate position (tasks currently in this column)
-        // We need a method in repository to count tasks or find max position.
-        // For simplicity now, let's fetch all tasks (not efficient for prod, but fine for MVP)
-        // OR even simpler: just set 0 for now, we will fix ordering later.
-        // Let's do it right: we need a method in TaskRepository.
+        // 2. Determine the correct position (ADD TO THE END)
+        // We get all tasks for the column to determine the new position index.
+        List<Task> existingTasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
+        int newPosition = existingTasks.size(); // If 2 tasks exist (0, 1), the new position is 2.
 
-        // Temporary solution: just save with position 0, we will fix ordering logic in the next step
-        // when we implement drag-and-drop logic properly.
-        int newPosition = 0;
-
+        // 3. Create entity
         Task task = new Task();
         task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
+        // Description is optional, so we check if the request provides it
+        if (request.getDescription() != null) {
+            task.setDescription(request.getDescription());
+        }
+
         task.setColumn(column);
         task.setPosition(newPosition);
 

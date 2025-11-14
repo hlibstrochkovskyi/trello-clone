@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import TaskCard from '../task/TaskCard';
+import CreateTaskForm from '../task/CreateTaskForm';
 
 const Column = ({ column }) => {
+  const [isAdding, setIsAdding] = useState(false);
+
   return (
     <div style={styles.column}>
       <h3 style={styles.header}>{column.title}</h3>
@@ -24,6 +28,15 @@ const Column = ({ column }) => {
           </div>
         )}
       </Droppable>
+
+      {/* Блок создания задачи */}
+      {isAdding ? (
+        <CreateTaskForm columnId={column.id} setAdding={setIsAdding} />
+      ) : (
+        <button onClick={() => setIsAdding(true)} style={styles.addBtn}>
+          + Добавить карточку
+        </button>
+      )}
     </div>
   );
 };
@@ -38,6 +51,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     height: 'fit-content',
+    maxHeight: '100%', // to prevent overflow
   },
   header: {
     marginBottom: '12px',
@@ -50,6 +64,21 @@ const styles = {
     flexGrow: 1,
     display: 'flex',
     flexDirection: 'column',
+    marginBottom: '8px',
+    overflowY: 'auto', // Scroll if tasks exceed column height
+  },
+  addBtn: {
+    padding: '8px',
+    margin: '0 4px',
+    textAlign: 'left',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: '3px',
+    color: '#5e6c84',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
   }
 };
 
