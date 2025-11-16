@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # --- Database Service (PostgreSQL) ---
   postgres_db:
     image: postgres:15-alpine
     container_name: trello_db
@@ -14,6 +15,44 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - trello_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d trello_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Backend Service (Spring Boot) ---
+  backend:
+    build:
+      context: . # Build Dockerfile from root
+      dockerfile: Dockerfile
+    container_name: trello_backend
+    ports:
+      - "8080:8080"
+    networks:
+      - trello_network
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/trello_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=secret123
+      - APP_JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      - APP_JWT_EXPIRATION=86400000
+
+  # --- NEW SERVICE: Frontend (React + Nginx) ---
+  frontend:
+    build:
+      context: ./frontend # Build Dockerfile from /frontend folder
+      dockerfile: Dockerfile
+    container_name: trello_frontend
+    ports:
+      - "80:80" # Expose port 80 (Nginx)
+    networks:
+      - trello_network
+    depends_on:
+      - backend # Start only after backend
 
 networks:
   trello_network:
