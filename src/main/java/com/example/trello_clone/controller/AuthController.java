@@ -15,6 +15,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+
+/**
+ * Provides endpoints for user login and registration.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -24,6 +28,15 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
+
+    /**
+     * Constructs a new AuthController with the specified dependencies.
+     *
+     * @param authenticationManager The authentication manager for user authentication.
+     * @param userRepository The repository for managing user data.
+     * @param passwordEncoder The encoder for hashing passwords.
+     * @param jwtUtils The utility for generating and validating JWT tokens.
+     */
     public AuthController(AuthenticationManager authenticationManager,
                           UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
@@ -34,7 +47,15 @@ public class AuthController {
         this.jwtUtils = jwtUtils;
     }
 
-    // === REGISTRATION ===
+
+    /**
+     * Registers a new user.
+     *
+     * Endpoint: POST /api/auth/register
+     *
+     * @param registerRequest The request body containing user registration details.
+     * @return A ResponseEntity indicating the result of the registration process.
+     */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
@@ -45,7 +66,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
-        // FIXED: Using constructor instead of builder
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
@@ -57,7 +77,15 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully!");
     }
 
-    // === LOGIN ===
+
+    /**
+     * Authenticates a user and generates a JWT token.
+     *
+     * Endpoint: POST /api/auth/login
+     *
+     * @param loginRequest The request body containing user login credentials.
+     * @return A ResponseEntity containing the JWT token and user details.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(

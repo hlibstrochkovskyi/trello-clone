@@ -72,7 +72,7 @@ const styles = {
     width: '280px',
     minWidth: '280px',
     maxWidth: '280px',
-    backgroundColor: '#ebecf0',
+    backgroundColor: '#ebecf0', // ← Вернули светло-серый!
     borderRadius: '6px',
     padding: '10px',
     marginRight: '12px',
@@ -81,7 +81,6 @@ const styles = {
     maxHeight: '100%',
     flexShrink: 0,
   },
-  // Новый контейнер для заголовка
   headerContainer: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -92,21 +91,20 @@ const styles = {
     padding: '0 4px',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#172b4d',
+    color: '#172b4d', // ← Темный текст (как в Trello)
     cursor: 'grab',
-    flexGrow: 1, // Заголовок занимает все место
+    flexGrow: 1,
     wordBreak: 'break-word',
   },
-  // Новая кнопка удаления
   deleteBtn: {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     fontSize: '20px',
-    color: '#6b778c',
+    color: '#6b778c', // ← Серая кнопка
     padding: '0 5px',
     lineHeight: '1',
-    flexShrink: 0, // Не сжиматься
+    flexShrink: 0,
   },
   taskList: {
     flexGrow: 1,
@@ -124,12 +122,11 @@ const styles = {
     backgroundColor: 'transparent',
     border: 'none',
     borderRadius: '3px',
-    color: '#5e6c84',
+    color: '#5e6c84', // ← Серый текст кнопки
     cursor: 'pointer',
     fontSize: '14px',
     display: 'flex',
     alignItems: 'center',
-    ':hover': { backgroundColor: 'rgba(9,30,66,.08)' } 
   }
 };
 

@@ -44,7 +44,7 @@ const styles = {
     addButton: {
         minWidth: '280px',
         height: '40px',
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)', // Полупрозрачная кнопка (правильно)
         color: 'white',
         border: 'none',
         borderRadius: '6px',
@@ -56,7 +56,7 @@ const styles = {
     },
     formContainer: {
         minWidth: '280px',
-        backgroundColor: '#ebecf0',
+        backgroundColor: '#ebecf0', // ← Светло-серая форма!
         borderRadius: '6px',
         padding: '8px',
         marginRight: '12px',
@@ -67,7 +67,8 @@ const styles = {
         padding: '8px',
         border: 'none',
         borderRadius: '3px',
-        marginBottom: '8px'
+        marginBottom: '8px',
+        backgroundColor: 'white',
     },
     controls: {
         display: 'flex',
@@ -87,7 +88,7 @@ const styles = {
         border: 'none',
         fontSize: '18px',
         cursor: 'pointer',
-        color: '#6b778c',
+        color: '#6b778c', // ← Серая кнопка
     }
 };
 

@@ -105,14 +105,15 @@ const styles = {
     height: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#0079bf',
+    backgroundColor: '#242424',
   },
   topBar: {
     padding: '10px 20px',
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    color: 'white'
+    backgroundColor: '#242424',
+    color: 'white',
+    flexShrink: 0, // Предотвращает сжатие хедера
   },
   backBtn: {
     marginRight: '20px',
@@ -123,12 +124,18 @@ const styles = {
     backgroundColor: 'rgba(255,255,255,0.2)',
     color: 'white',
   },
+  boardTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: 'bold',
+  },
   boardLayout: {
     display: 'flex',
     padding: '20px',
     overflowX: 'auto',
-    height: '100%',
-    alignItems: 'flex-start'
+    overflowY: 'hidden', // Убираем вертикальный скролл
+    flex: 1, // Занимает всё оставшееся пространство
+    alignItems: 'flex-start',
   }
 };
 

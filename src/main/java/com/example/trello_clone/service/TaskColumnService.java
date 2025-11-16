@@ -10,19 +10,36 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service class for managing task columns within the application.
+ * Provides methods for creating, updating, moving, and deleting columns.
+ */
 @Service
 public class TaskColumnService {
 
     private final TaskColumnRepository taskColumnRepository;
     private final BoardRepository boardRepository;
 
-    // Конструктор (мы убрали TaskRepository, так как он здесь больше не нужен)
+    /**
+     * Constructs a new TaskColumnService with the specified repositories.
+     *
+     * @param taskColumnRepository The repository for managing task columns.
+     * @param boardRepository The repository for managing boards.
+     */
     public TaskColumnService(TaskColumnRepository taskColumnRepository,
                              BoardRepository boardRepository) {
         this.taskColumnRepository = taskColumnRepository;
         this.boardRepository = boardRepository;
     }
 
+    /**
+     * Creates a new column in the specified board.
+     *
+     * @param boardId The ID of the board where the column will be created.
+     * @param request The request object containing column details.
+     * @return The created column.
+     * @throws RuntimeException if the board with the specified ID is not found.
+     */
     @Transactional
     public TaskColumn createColumn(Long boardId, CreateColumnRequest request) {
         Board board = boardRepository.findById(boardId)
@@ -40,10 +57,24 @@ public class TaskColumnService {
         return taskColumnRepository.save(column);
     }
 
+    /**
+     * Retrieves all columns in a specific board, ordered by their position.
+     *
+     * @param boardId The ID of the board.
+     * @return A list of columns in the specified board.
+     */
     public List<TaskColumn> getColumnsByBoardId(Long boardId) {
         return taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
     }
 
+    /**
+     * Moves a column to a new position within the same board.
+     *
+     * @param columnId The ID of the column to be moved.
+     * @param newPosition The new position for the column.
+     * @return The updated column after the move.
+     * @throws RuntimeException if the column is not found.
+     */
     @Transactional
     public TaskColumn moveColumn(Long columnId, Integer newPosition) {
         TaskColumn column = taskColumnRepository.findById(columnId)
@@ -56,42 +87,41 @@ public class TaskColumnService {
             return column;
         }
 
-        // 1. Получаем все колонки
         List<TaskColumn> columns = taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
-        // 2. Удаляем перемещаемую
         columns.removeIf(c -> c.getId().equals(columnId));
-        // 3. Вставляем в новую позицию
         if (newPosition < 0) newPosition = 0;
         if (newPosition > columns.size()) newPosition = columns.size();
         columns.add(newPosition, column);
 
-        // 4. Пересчитываем ВСЕ позиции (наш "железобетонный" метод)
         updateColumnPositions(columns);
 
-        return column; // Spring Data JPA сохранит изменения в 'columns'
+        return column;
     }
 
-    // --- НОВЫЙ МЕТОД УДАЛЕНИЯ ---
+    /**
+     * Deletes a column and re-indexes the positions of the remaining columns in the board.
+     *
+     * @param columnId The ID of the column to be deleted.
+     * @throws RuntimeException if the column is not found.
+     */
     @Transactional
     public void deleteColumn(Long columnId) {
-        // 1. Находим колонку (чтобы знать, какую доску обновлять)
         TaskColumn column = taskColumnRepository.findById(columnId)
                 .orElseThrow(() -> new RuntimeException("Column not found"));
 
         Long boardId = column.getBoard().getId();
 
-        // 2. Удаляем колонку
-        // (PostgreSQL автоматически удалит все задачи в ней благодаря 'ON DELETE CASCADE')
         taskColumnRepository.delete(column);
 
-        // 3. Получаем ОСТАВШИЕСЯ колонки
         List<TaskColumn> remainingColumns = taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
-
-        // 4. Пересчитываем их позиции (0, 1, 2...), чтобы закрыть "дырку"
         updateColumnPositions(remainingColumns);
     }
 
-    // --- НОВЫЙ ВСПОМОГАТЕЛЬНЫЙ МЕТОД ---
+    /**
+     * Updates the positions of columns in a board to ensure they are sequential.
+     *
+     * @param columns The list of columns to be re-indexed.
+     */
     private void updateColumnPositions(List<TaskColumn> columns) {
         for (int i = 0; i < columns.size(); i++) {
             TaskColumn c = columns.get(i);

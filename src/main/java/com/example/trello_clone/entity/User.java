@@ -5,6 +5,12 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
+
+
+/**
+ * Entity class representing a user in the system.
+ * Maps to the "users" table in the database.
+ */
 @Entity
 @Table(name = "users")
 public class User {
@@ -36,7 +42,14 @@ public class User {
     // Empty Constructor (Required by JPA)
     public User() {}
 
-    // Constructor with fields
+    /**
+     * Constructs a new User with the specified details.
+     *
+     * @param username The username of the user.
+     * @param email The email address of the user.
+     * @param password The hashed password of the user.
+     * @param isActive The active status of the user.
+     */
     public User(String username, String email, String password, Boolean isActive) {
         this.username = username;
         this.email = email;

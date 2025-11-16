@@ -12,17 +12,35 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service class for managing tasks within the application.
+ * Provides methods for creating, updating, moving, and deleting tasks.
+ */
 @Service
 public class TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskColumnRepository taskColumnRepository;
 
+    /**
+     * Constructs a new TaskService with the specified repositories.
+     *
+     * @param taskRepository The repository for managing tasks.
+     * @param taskColumnRepository The repository for managing task columns.
+     */
     public TaskService(TaskRepository taskRepository, TaskColumnRepository taskColumnRepository) {
         this.taskRepository = taskRepository;
         this.taskColumnRepository = taskColumnRepository;
     }
 
+    /**
+     * Creates a new task in the specified column.
+     *
+     * @param columnId The ID of the column where the task will be created.
+     * @param request The request object containing task details.
+     * @return The created task.
+     * @throws RuntimeException if the column with the specified ID is not found.
+     */
     @Transactional
     public Task createTask(Long columnId, CreateTaskRequest request) {
         TaskColumn column = taskColumnRepository.findById(columnId)
@@ -42,6 +60,14 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
+    /**
+     * Moves a task to a new position within the same column or to a different column.
+     *
+     * @param taskId The ID of the task to be moved.
+     * @param request The request object containing the target column ID and new position.
+     * @return The updated task after the move.
+     * @throws RuntimeException if the task or target column is not found.
+     */
     @Transactional
     public Task moveTask(Long taskId, MoveTaskRequest request) {
         Task task = taskRepository.findById(taskId)
@@ -83,54 +109,68 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    // Helper method to re-index positions
-    private void updateTaskPositions(List<Task> tasks) {
-        for (int i = 0; i < tasks.size(); i++) {
-            Task t = tasks.get(i);
-            t.setPosition(i);
-            taskRepository.save(t);
-        }
-    }
-
-    // === NEW METHOD TO ADD ===
+    /**
+     * Deletes a task and re-indexes the positions of the remaining tasks in the column.
+     *
+     * @param taskId The ID of the task to be deleted.
+     * @throws RuntimeException if the task is not found.
+     */
     @Transactional
     public void deleteTask(Long taskId) {
-        // 1. Find the task to get its column and position
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
         TaskColumn column = task.getColumn();
 
-        // 2. Delete the task
         taskRepository.delete(task);
 
-        // 3. Reload the remaining tasks and re-index them
         List<Task> remainingTasks = taskRepository.findByColumnIdOrderByPositionAsc(column.getId());
         updateTaskPositions(remainingTasks);
     }
-    // ========================
 
+    /**
+     * Updates the details of an existing task.
+     *
+     * @param taskId The ID of the task to be updated.
+     * @param request The request object containing updated task details.
+     * @return The updated task.
+     * @throws RuntimeException if the task is not found.
+     */
     @Transactional
     public Task updateTaskDetails(Long taskId, UpdateTaskRequest request) {
-        // 1. Находим задачу
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found with id: " + taskId));
 
-        // 2. Обновляем поля (если они не null в запросе)
         if (request.getTitle() != null) {
             task.setTitle(request.getTitle());
         }
         if (request.getDescription() != null) {
             task.setDescription(request.getDescription());
         }
-        // (Здесь в будущем можно добавить обновление dueDate, labels и т.д.)
 
-        // 3. Сохраняем изменения
         return taskRepository.save(task);
     }
 
-
+    /**
+     * Retrieves all tasks in a specific column, ordered by their position.
+     *
+     * @param columnId The ID of the column.
+     * @return A list of tasks in the specified column.
+     */
     public List<Task> getTasksByColumnId(Long columnId) {
         return taskRepository.findByColumnIdOrderByPositionAsc(columnId);
+    }
+
+    /**
+     * Updates the positions of tasks in a column to ensure they are sequential.
+     *
+     * @param tasks The list of tasks to be re-indexed.
+     */
+    private void updateTaskPositions(List<Task> tasks) {
+        for (int i = 0; i < tasks.size(); i++) {
+            Task t = tasks.get(i);
+            t.setPosition(i);
+            taskRepository.save(t);
+        }
     }
 }

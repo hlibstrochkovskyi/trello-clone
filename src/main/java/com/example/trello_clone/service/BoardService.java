@@ -20,19 +20,37 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
 
-    // Manual Constructor
+
+    /**
+     * Constructs a new BoardService with the specified repositories.
+     *
+     * @param boardRepository The repository for managing boards.
+     * @param userRepository The repository for managing users.
+     */
     public BoardService(BoardRepository boardRepository, UserRepository userRepository) {
         this.boardRepository = boardRepository;
         this.userRepository = userRepository;
     }
 
-    // Helper method to get current user
+    /**
+     * Retrieves the currently authenticated user.
+     *
+     * @return The currently authenticated user.
+     * @throws UsernameNotFoundException if the user is not found.
+     */
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
+
+    /**
+     * Creates a new board and associates it with the currently authenticated user.
+     *
+     * @param request The request object containing board details.
+     * @return The created board.
+     */
     @Transactional
     public Board createBoard(CreateBoardRequest request) {
         User user = getCurrentUser();
@@ -46,12 +64,24 @@ public class BoardService {
         return boardRepository.save(board);
     }
 
+
+    /**
+     * Retrieves all boards associated with the currently authenticated user.
+     *
+     * @return A list of boards owned by the user.
+     */
     public List<Board> getAllUserBoards() {
         User user = getCurrentUser();
         return boardRepository.findByUserId(user.getId());
     }
 
-    // --- NEW: Delete a board ---
+
+    /**
+     * Deletes a board owned by the currently authenticated user.
+     *
+     * @param boardId The ID of the board to be deleted.
+     * @throws RuntimeException if the board is not found or the user does not own the board.
+     */
     @Transactional
     public void deleteBoard(Long boardId) {
         User user = getCurrentUser();

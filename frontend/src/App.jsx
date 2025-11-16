@@ -107,14 +107,13 @@ function App() {
 // --- ОБНОВЛЕННЫЙ ОБЪЕКТ СТИЛЕЙ ---
 const styles = {
     dashboardContainer: {
-        padding: '20px',
-        color: 'white',
         minHeight: '100vh',
         boxSizing: 'border-box',
+        backgroundColor: '#242424', // Фон как в Trello
     },
     headerWrapper: {
-        width: '100%',
-        marginBottom: '20px',
+        padding: '20px',
+        backgroundColor: 'rgba(0,0,0,0.15)', // Полупрозрачный фон для хедера
     },
     header: {
         display: 'flex',
@@ -124,9 +123,10 @@ const styles = {
     },
     dashTitle: {
         margin: 0,
+        color: 'white',
     },
     logoutButton: {
-        backgroundColor: '#b04632',
+        backgroundColor: '#b03238ff',
         color: 'white',
         border: 'none',
         padding: '8px 16px',
@@ -142,7 +142,7 @@ const styles = {
         borderRadius: '4px',
         border: 'none',
         flexGrow: 1,
-        color: '#333',
+        color: 'white',
     },
     createButton: {
         backgroundColor: '#5aac44',
@@ -156,10 +156,8 @@ const styles = {
         display: 'flex',
         gap: '20px',
         flexWrap: 'wrap',
-        maxWidth: '1280px',
-        margin: '0 auto',
-        // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-        justifyContent: 'center', // Было 'flex-start', теперь 'center'
+        padding: '20px', // Padding только для досок
+        justifyContent: 'center', // Центрирование досок
     },
     boardCard: {
         width: '200px',
@@ -175,12 +173,13 @@ const styles = {
         position: 'relative',
         boxSizing: 'border-box',
         boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+        color: 'white',
     },
     deleteBoardBtn: {
         position: 'absolute',
         top: '8px',
         right: '8px',
-        background: 'rgba(0,0,0,0.3)',
+        background: 'rgba(0,0,0,0)',
         color: 'white',
         border: 'none',
         borderRadius: '50%',

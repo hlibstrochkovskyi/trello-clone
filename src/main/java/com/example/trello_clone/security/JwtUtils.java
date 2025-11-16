@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+
+
+/**
+ * Utility class for handling JSON Web Tokens (JWT).
+ * Provides methods for generating, validating, and extracting information from JWTs.
+ */
 @Component
 public class JwtUtils {
 
@@ -31,18 +37,37 @@ public class JwtUtils {
                 .compact();
     }
 
-    // 2. Transforming a secret key into a cryptographic object
+
+    /**
+     * Converts the secret key into a cryptographic object.
+     *
+     * @return The cryptographic key derived from the secret.
+     */
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
-    // 3. Extract the username from the token
+
+
+    /**
+     * Extracts the username from the provided JWT token.
+     *
+     * @param token The JWT token.
+     * @return The username contained in the token.
+     */
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                 .parseClaimsJws(token).getBody().getSubject();
     }
 
-    // 4. Checking the validity of the token
+
+
+    /**
+     * Validates the provided JWT token.
+     *
+     * @param authToken The JWT token to validate.
+     * @return True if the token is valid, false otherwise.
+     */
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
