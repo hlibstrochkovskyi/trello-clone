@@ -25,12 +25,14 @@ const TaskCard = ({ task, index }) => {
 const styles = {
   card: {
     padding: '10px',
-    marginBottom: '8px',
     borderRadius: '4px',
     boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
     cursor: 'grab',
     border: '1px solid #ddd',
-    color: '#333'
+    color: '#333',
+    backgroundColor: 'white', 
+    wordWrap: 'break-word',   
+    whiteSpace: 'normal',    
   },
   title: {
     fontWeight: '500',
