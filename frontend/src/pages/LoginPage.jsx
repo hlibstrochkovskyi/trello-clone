@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,6 +28,22 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   /**
+   * Set body background to white on mount, restore on unmount
+   */
+  useEffect(() => {
+    // Save original background
+    const originalBg = document.body.style.backgroundColor;
+    
+    // Set white background for login page
+    document.body.style.backgroundColor = 'white';
+    
+    // Restore on unmount
+    return () => {
+      document.body.style.backgroundColor = originalBg;
+    };
+  }, []);
+
+  /**
    * Handles form submission and authentication
    * Attempts to log in the user and redirects to home on success
    * 
@@ -39,14 +55,14 @@ const LoginPage = () => {
     try {
       await login({ username, password });
       alert("Login successful!");
-      navigate('/'); // Redirect to home page after successful login
+      navigate('/');
     } catch (err) {
       console.error('Login error:', err);
     }
   };
 
   return (
-    <div style={styles.container}>
+    <div style={styles.pageContainer}>
       <div style={styles.card}>
         {/* Page title */}
         <h2 style={styles.title}>Login to Trello Clone</h2>
@@ -98,27 +114,37 @@ const LoginPage = () => {
 
 /**
  * Component styles
- * Simple inline styles for authentication UI
+ * Full-page white background with centered card
  */
 const styles = {
-  container: { 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    height: '100vh', 
-    backgroundColor: '#f0f2f5' 
+  pageContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    width: '100%',
+    backgroundColor: 'white',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   card: { 
     background: 'white', 
-    padding: '2rem', 
+    padding: '2.5rem', 
     borderRadius: '8px', 
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-    width: '300px' 
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', 
+    width: '100%',
+    maxWidth: '400px',
+    margin: '20px',
   },
   title: { 
     textAlign: 'center', 
-    color: '#333', 
-    marginBottom: '1.5rem' 
+    color: '#172b4d', 
+    marginBottom: '1.5rem',
+    fontSize: '24px',
+    fontWeight: '600',
   },
   form: { 
     display: 'flex', 
@@ -127,25 +153,31 @@ const styles = {
   },
   input: { 
     padding: '0.75rem', 
-    border: '1px solid #ddd', 
+    border: '2px solid #dfe1e6', 
     borderRadius: '4px', 
-    fontSize: '1rem' 
+    fontSize: '1rem',
+    color: '#172b4d',
+    backgroundColor: '#fafbfc',
+    outline: 'none',
   },
   button: { 
     padding: '0.75rem', 
-    backgroundColor: '#0079bf', // Trello blue
+    backgroundColor: '#0079bf',
     color: 'white', 
     border: 'none', 
     borderRadius: '4px', 
     cursor: 'pointer', 
     fontSize: '1rem', 
-    fontWeight: 'bold' 
+    fontWeight: 'bold',
   },
   error: { 
-    color: 'red', 
+    color: '#eb5a46', 
     textAlign: 'center', 
     marginBottom: '1rem', 
-    fontSize: '0.9rem' 
+    fontSize: '0.9rem',
+    padding: '0.5rem',
+    backgroundColor: '#ffebe6',
+    borderRadius: '4px',
   }
 };
 
