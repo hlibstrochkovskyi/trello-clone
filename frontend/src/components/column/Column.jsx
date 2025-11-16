@@ -2,34 +2,48 @@ import { useState } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import TaskCard from '../task/TaskCard';
 import CreateTaskForm from '../task/CreateTaskForm';
-import useBoardStore from '../../store/boardStore'; // 1. Импорт Store
+import useBoardStore from '../../store/boardStore';
 
+/**
+ * Represents a column in the board.
+ *
+ * @component
+ * @param {Object} props - The props object.
+ * @param {Object} props.column - The column data.
+ * @param {string} props.column.id - The unique ID of the column.
+ * @param {string} props.column.title - The title of the column.
+ * @param {Array} props.column.tasks - The list of tasks in the column.
+ * @param {Object} [props.dragHandleProps] - Optional drag handle properties for drag-and-drop functionality.
+ * @returns {JSX.Element} A column component.
+ */
 const Column = ({ column, dragHandleProps }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const { deleteColumn } = useBoardStore(); // 2. Получаем функцию удаления
+  const { deleteColumn } = useBoardStore();
 
-  // 3. Обработчик клика
+  /**
+   * Handles the deletion of the column.
+   *
+   * @param {Event} e - The click event.
+   */
   const handleDelete = (e) => {
-    e.stopPropagation(); // Остановка DND
-    if (window.confirm(`Удалить колонку "${column.title}"? Все задачи в ней будут удалены.`)) {
-        deleteColumn(column.id);
+    e.stopPropagation();
+    if (window.confirm(`Delete column "${column.title}"? All tasks in it will be removed.`)) {
+      deleteColumn(column.id);
     }
   };
 
   return (
     <div style={styles.column}>
-      {/* 4. Оборачиваем заголовок и кнопку в flex-контейнер */}
       <div style={styles.headerContainer}>
-        <h3 
+        <h3
           style={styles.header}
-          {...dragHandleProps} 
+          {...dragHandleProps}
         >
           {column.title}
         </h3>
-        {/* 5. Кнопка удаления колонки */}
         <button onClick={handleDelete} style={styles.deleteBtn}>×</button>
       </div>
-      
+
       <Droppable droppableId={column.id.toString()} type="task">
         {(provided, snapshot) => (
           <div
@@ -38,14 +52,14 @@ const Column = ({ column, dragHandleProps }) => {
             style={{
               ...styles.taskList,
               backgroundColor: snapshot.isDraggingOver ? '#dfe1e6' : 'transparent',
-              minHeight: '50px' 
+              minHeight: '50px'
             }}
           >
             {column.tasks.map((task, index) => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                index={index} 
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={index}
                 columnId={column.id}
               />
             ))}
@@ -54,25 +68,24 @@ const Column = ({ column, dragHandleProps }) => {
         )}
       </Droppable>
 
-      {/* Task creation block */}
       {isAdding ? (
         <CreateTaskForm columnId={column.id} setAdding={setIsAdding} />
       ) : (
         <button onClick={() => setIsAdding(true)} style={styles.addBtn}>
-          + Добавить карточку
+          + Add a card
         </button>
       )}
     </div>
   );
 };
 
-// 6. Обновляем стили
+// Styles for the Column component
 const styles = {
   column: {
     width: '280px',
     minWidth: '280px',
     maxWidth: '280px',
-    backgroundColor: '#ebecf0', // ← Вернули светло-серый!
+    backgroundColor: '#ebecf0',
     borderRadius: '6px',
     padding: '10px',
     marginRight: '12px',
@@ -91,7 +104,7 @@ const styles = {
     padding: '0 4px',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#172b4d', // ← Темный текст (как в Trello)
+    color: '#172b4d',
     cursor: 'grab',
     flexGrow: 1,
     wordBreak: 'break-word',
@@ -101,7 +114,7 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     fontSize: '20px',
-    color: '#6b778c', // ← Серая кнопка
+    color: '#6b778c',
     padding: '0 5px',
     lineHeight: '1',
     flexShrink: 0,
@@ -122,7 +135,7 @@ const styles = {
     backgroundColor: 'transparent',
     border: 'none',
     borderRadius: '3px',
-    color: '#5e6c84', // ← Серый текст кнопки
+    color: '#5e6c84',
     cursor: 'pointer',
     fontSize: '14px',
     display: 'flex',

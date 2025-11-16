@@ -4,23 +4,56 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import useBoardStore from '../store/boardStore';
 import Column from '../components/column/Column';
 import CreateColumnSection from '../components/column/CreateColumnSection'; 
-// 1. IMPORT: The modal component is now imported
 import TaskDetailModal from '../components/modal/TaskDetailModal'; 
 
+/**
+ * BoardPage Component
+ * 
+ * Main board view displaying columns and tasks with drag-and-drop functionality.
+ * Supports dragging tasks between columns and reordering columns.
+ * Uses React Beautiful DnD (hello-pangea/dnd) for drag-and-drop capabilities.
+ * 
+ * Features:
+ * - Fetches and displays board data based on URL parameter
+ * - Drag-and-drop for both columns and tasks
+ * - Task detail modal integration
+ * - Column creation functionality
+ * 
+ * @component
+ * @returns {JSX.Element} The board page with draggable columns and tasks
+ */
 const BoardPage = () => {
   const { boardId } = useParams();
   const navigate = useNavigate();
-  // IMPORTANT: Ensure moveColumn is included
+  
+  // Get board state and actions from store
+  // Note: moveColumn is essential for column reordering functionality
   const { currentBoard, isLoading, fetchBoardDetails, moveTask, moveColumn } = useBoardStore();
 
+  /**
+   * Fetch board details when component mounts or boardId changes
+   */
   useEffect(() => {
     if (boardId) fetchBoardDetails(boardId);
-  }, [boardId]);
+  }, [boardId, fetchBoardDetails]);
 
+  /**
+   * Handles the end of a drag operation for both columns and tasks
+   * Determines the type of dragged item and calls appropriate move function
+   * 
+   * @param {Object} result - Drag result object from React Beautiful DnD
+   * @param {Object} result.destination - Drop destination information
+   * @param {Object} result.source - Drag source information
+   * @param {string} result.draggableId - ID of the dragged element
+   * @param {string} result.type - Type of dragged element ('column' or 'task')
+   */
   const onDragEnd = (result) => {
     const { destination, source, draggableId, type } = result;
 
+    // Exit if dropped outside a droppable area
     if (!destination) return;
+    
+    // Exit if dropped in the same position
     if (
       destination.droppableId === source.droppableId && 
       destination.index === source.index
@@ -28,78 +61,99 @@ const BoardPage = () => {
       return;
     }
     
-    // --- 1. COLUMN MOVEMENT LOGIC ---
+    // Handle column reordering
     if (type === 'column') {
       const columnId = Number(draggableId);
-      // Call store function to optimistically update and send API call
+      // Optimistically update UI and sync with backend
       moveColumn(columnId, source.index, destination.index);
       return;
     }
     
-    // --- 2. TASK MOVEMENT LOGIC ---
+    // Handle task movement (within or between columns)
     if (type === 'task') {
-        moveTask(
-          draggableId,
-          source.droppableId,
-          destination.droppableId,
-          source.index,
-          destination.index
-        );
-        return;
+      moveTask(
+        draggableId,
+        source.droppableId,
+        destination.droppableId,
+        source.index,
+        destination.index
+      );
+      return;
     }
   };
 
-  if (isLoading) return <div style={{color: 'white'}}>Загрузка...</div>;
-  if (!currentBoard) return <div style={{color: 'white'}}>Доска не найдена</div>;
+  // Loading state
+  if (isLoading) return <div style={{color: 'white'}}>Loading...</div>;
+  
+  // Board not found state
+  if (!currentBoard) return <div style={{color: 'white'}}>Board not found</div>;
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div style={styles.container}>
+        {/* Top navigation bar */}
         <div style={styles.topBar}>
-           <button onClick={() => navigate('/')} style={styles.backBtn}>← Назад</button>
-           <h2 style={styles.boardTitle}>{currentBoard.name || `Доска #${currentBoard.id}`}</h2>
+          {/* Back button to return to boards list */}
+          <button onClick={() => navigate('/')} style={styles.backBtn}>
+            ← Back
+          </button>
+          
+          {/* Board title */}
+          <h2 style={styles.boardTitle}>
+            {currentBoard.name || `Board #${currentBoard.id}`}
+          </h2>
         </div>
         
-        {/* Droppable area for the entire list of columns (type="column") */}
+        {/* Droppable area for columns with horizontal layout */}
         <Droppable droppableId="all-columns" direction="horizontal" type="column"> 
-            {(provided) => (
-                <div 
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    style={styles.boardLayout}
+          {(provided) => (
+            <div 
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              style={styles.boardLayout}
+            >
+              {/* Render each column as a draggable element */}
+              {currentBoard.columns.map((column, index) => (
+                <Draggable 
+                  key={column.id} 
+                  draggableId={column.id.toString()} 
+                  index={index}
                 >
-                    {currentBoard.columns.map((column, index) => (
-                        // Each column is draggable
-                        <Draggable key={column.id} draggableId={column.id.toString()} index={index}>
-                            {(provided) => (
-                                <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    // The column component now receives dragHandleProps for its header
-                                >
-                                    <Column 
-                                        column={column} 
-                                        dragHandleProps={provided.dragHandleProps}
-                                    />
-                                </div>
-                            )}
-                        </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    
-                    {/* Column creation button */}
-                    <CreateColumnSection boardId={currentBoard.id} />
-                </div>
-            )}
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                    >
+                      {/* Column component receives drag handle props for header */}
+                      <Column 
+                        column={column} 
+                        dragHandleProps={provided.dragHandleProps}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              
+              {/* Placeholder for drag-and-drop spacing */}
+              {provided.placeholder}
+              
+              {/* Button to create new columns */}
+              <CreateColumnSection boardId={currentBoard.id} />
+            </div>
+          )}
         </Droppable>
 
-        {/* 2. ADDED: The modal now lives here and will appear when needed */}
+        {/* Task detail modal - renders when a task is selected */}
         <TaskDetailModal />
       </div>
     </DragDropContext>
   );
 };
 
+/**
+ * Component styles
+ * Layout and styling for the board page and its elements
+ */
 const styles = {
   container: {
     height: '100vh',
@@ -113,7 +167,7 @@ const styles = {
     alignItems: 'center',
     backgroundColor: '#242424',
     color: 'white',
-    flexShrink: 0, // Предотвращает сжатие хедера
+    flexShrink: 0, // Prevent header from shrinking
   },
   backBtn: {
     marginRight: '20px',
@@ -132,9 +186,9 @@ const styles = {
   boardLayout: {
     display: 'flex',
     padding: '20px',
-    overflowX: 'auto',
-    overflowY: 'hidden', // Убираем вертикальный скролл
-    flex: 1, // Занимает всё оставшееся пространство
+    overflowX: 'auto', // Enable horizontal scrolling for many columns
+    overflowY: 'hidden', // Disable vertical scrolling
+    flex: 1, // Take up remaining vertical space
     alignItems: 'flex-start',
   }
 };

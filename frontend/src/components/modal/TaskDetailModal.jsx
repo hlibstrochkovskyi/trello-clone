@@ -1,84 +1,103 @@
-import { useState, useEffect } from 'react'; // 1. Импортируем useState и useEffect
+import { useState, useEffect } from 'react';
 import useUiStore from '../../store/uiStore';
 import useBoardStore from '../../store/boardStore';
 
+/**
+ * TaskDetailModal Component
+ * 
+ * A modal dialog for viewing and editing task details.
+ * Displays task title and description with inline editing capabilities.
+ * 
+ * @component
+ * @returns {JSX.Element|null} The modal component or null if closed/no task selected
+ */
 const TaskDetailModal = () => {
-  // 1. Получаем состояние из UI store
+  // Get UI state and controls from UI store
   const { isTaskModalOpen, selectedTaskId, closeTaskModal } = useUiStore();
   
-  // 2. Получаем данные и функцию обновления из board store
+  // Get board data and update function from board store
   const { currentBoard, updateTaskDetails } = useBoardStore();
   
-  // 3. Локальное состояние для полей ввода
+  // Local state for form inputs
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  // 4. Находим нужную задачу по ID
+  // Find the selected task by ID across all columns
   const task = (currentBoard && selectedTaskId)
     ? currentBoard.columns
-        .flatMap(c => c.tasks) // Собираем все задачи со всех колонок в один массив
-        .find(t => t.id === selectedTaskId) // Находим нужную
+        .flatMap(c => c.tasks) // Flatten all tasks from all columns into a single array
+        .find(t => t.id === selectedTaskId) // Find the matching task
     : null;
 
-  // 5. Синхронизируем локальное состояние с задачей (когда модалка открывается)
+  // Synchronize local state with task data when modal opens or task changes
   useEffect(() => {
     if (task) {
       setTitle(task.title);
-      setDescription(task.description || ''); // Ставим пустую строку, если description=null
+      setDescription(task.description || ''); // Use empty string if description is null/undefined
     }
-  }, [task]); // Этот эффект сработает, как только 'task' будет найден
+  }, [task]);
 
-  // 6. Функция сохранения
+  /**
+   * Handles saving changes to the task
+   * Updates the task details in the store and closes the modal
+   */
   const handleSave = () => {
     if (!task) return;
     
-    // Вызываем экшн из store
+    // Update task details via store action
     updateTaskDetails(task.id, {
       title: title,
       description: description
     });
     
-    closeTaskModal(); // Закрываем окно после сохранения
-  };
-
-  // 7. Функция закрытия (без сохранения)
-  const handleClose = () => {
-    // (Здесь можно добавить проверку "Вы уверены?")
     closeTaskModal();
   };
 
+  /**
+   * Handles closing the modal without saving
+   * TODO: Consider adding unsaved changes confirmation
+   */
+  const handleClose = () => {
+    closeTaskModal();
+  };
+
+  // Don't render if modal is closed or no task is selected
   if (!isTaskModalOpen || !task) {
     return null;
   }
 
   return (
-    // Оверлей
+    // Overlay backdrop
     <div style={styles.overlay} onClick={handleClose}>
-      {/* Контент модалки */}
+      {/* Modal content container */}
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         
+        {/* Close button */}
         <button style={styles.closeButton} onClick={handleClose}>×</button>
         
-        {/* Поле для Заголовка */}
+        {/* Task title input */}
         <input
           style={styles.titleInput}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          aria-label="Task title"
         />
         
-        <p style={styles.label}>Описание:</p>
+        {/* Description label */}
+        <p style={styles.label}>Description:</p>
         
-        {/* Поле для Описания */}
+        {/* Task description textarea */}
         <textarea
           style={styles.descriptionTextarea}
-          placeholder="Добавьте более подробное описание..."
+          placeholder="Add a more detailed description..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          aria-label="Task description"
         />
         
-        {/* Кнопка Сохранить */}
+        {/* Save button */}
         <button style={styles.saveButton} onClick={handleSave}>
-          Сохранить
+          Save
         </button>
         
       </div>
@@ -86,7 +105,10 @@ const TaskDetailModal = () => {
   );
 };
 
-// Стили для модального окна
+/**
+ * Component styles
+ * Using inline styles for modal overlay and content
+ */
 const styles = {
   overlay: {
     position: 'fixed',
@@ -119,29 +141,26 @@ const styles = {
     cursor: 'pointer',
     color: '#6b778c',
   },
-  // Стиль для инпута заголовка
+  // Title input styling
   titleInput: {
     fontSize: '24px',
     fontWeight: '600',
-    color : '#172b4d',
+    color: '#172b4d',
     border: 'none',
     padding: '4px',
     borderRadius: '3px',
-    width: '90%', // Оставляем место для кнопки "X"
+    width: '90%', // Leave space for close button
     marginBottom: '20px',
     backgroundColor: 'transparent',
-    ':focus': { // Псевдо-селекторы в inline-стилях не работают, но для React это OK
-        backgroundColor: 'white',
-        boxShadow: '0 0 0 2px #0079bf',
-        outline: 'none'
-    }
+    // Note: Pseudo-selectors like :focus don't work with inline styles
+    // Consider using CSS modules or styled-components for interactive states
   },
   label: {
     fontWeight: '600',
     fontSize: '12px',
     marginBottom: '4px',
   },
-  // Стиль для textarea описания
+  // Description textarea styling
   descriptionTextarea: {
     backgroundColor: 'white',
     padding: '8px 12px',
@@ -149,15 +168,15 @@ const styles = {
     borderRadius: '3px',
     border: 'none',
     width: '100%',
-    boxSizing: 'border-box', // Важно, чтобы padding не ломал ширину
+    boxSizing: 'border-box', // Ensure padding doesn't affect width
     fontFamily: 'inherit',
     fontSize: '14px',
     color: '#333',
     resize: 'vertical',
   },
-  // Стиль для кнопки Сохранить
+  // Save button styling
   saveButton: {
-    backgroundColor: '#86ce35ff', // Зеленый
+    backgroundColor: '#86ce35ff', // Green
     color: 'white',
     border: 'none',
     padding: '8px 16px',
