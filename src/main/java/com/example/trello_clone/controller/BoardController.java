@@ -32,4 +32,11 @@ public class BoardController {
         List<Board> boards = boardService.getAllUserBoards();
         return ResponseEntity.ok(boards);
     }
+
+    // --- NEW: Delete a board ---
+    @DeleteMapping("/{boardId}")
+    public ResponseEntity<Void> deleteBoard(@PathVariable Long boardId) {
+        boardService.deleteBoard(boardId);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
 }

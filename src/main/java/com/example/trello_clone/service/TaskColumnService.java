@@ -16,7 +16,9 @@ public class TaskColumnService {
     private final TaskColumnRepository taskColumnRepository;
     private final BoardRepository boardRepository;
 
-    public TaskColumnService(TaskColumnRepository taskColumnRepository, BoardRepository boardRepository) {
+    // Конструктор (мы убрали TaskRepository, так как он здесь больше не нужен)
+    public TaskColumnService(TaskColumnRepository taskColumnRepository,
+                             BoardRepository boardRepository) {
         this.taskColumnRepository = taskColumnRepository;
         this.boardRepository = boardRepository;
     }
@@ -48,26 +50,53 @@ public class TaskColumnService {
                 .orElseThrow(() -> new RuntimeException("Column not found"));
 
         Long boardId = column.getBoard().getId();
+        Integer oldPosition = column.getPosition();
 
-        // 1. Получаем все колонки доски
+        if (newPosition.equals(oldPosition)) {
+            return column;
+        }
+
+        // 1. Получаем все колонки
         List<TaskColumn> columns = taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
-
-        // 2. Удаляем перемещаемую колонку из списка
+        // 2. Удаляем перемещаемую
         columns.removeIf(c -> c.getId().equals(columnId));
-
         // 3. Вставляем в новую позицию
         if (newPosition < 0) newPosition = 0;
         if (newPosition > columns.size()) newPosition = columns.size();
-
         columns.add(newPosition, column);
 
-        // 4. Перезаписываем позиции всем колонкам (0, 1, 2...)
+        // 4. Пересчитываем ВСЕ позиции (наш "железобетонный" метод)
+        updateColumnPositions(columns);
+
+        return column; // Spring Data JPA сохранит изменения в 'columns'
+    }
+
+    // --- НОВЫЙ МЕТОД УДАЛЕНИЯ ---
+    @Transactional
+    public void deleteColumn(Long columnId) {
+        // 1. Находим колонку (чтобы знать, какую доску обновлять)
+        TaskColumn column = taskColumnRepository.findById(columnId)
+                .orElseThrow(() -> new RuntimeException("Column not found"));
+
+        Long boardId = column.getBoard().getId();
+
+        // 2. Удаляем колонку
+        // (PostgreSQL автоматически удалит все задачи в ней благодаря 'ON DELETE CASCADE')
+        taskColumnRepository.delete(column);
+
+        // 3. Получаем ОСТАВШИЕСЯ колонки
+        List<TaskColumn> remainingColumns = taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
+
+        // 4. Пересчитываем их позиции (0, 1, 2...), чтобы закрыть "дырку"
+        updateColumnPositions(remainingColumns);
+    }
+
+    // --- НОВЫЙ ВСПОМОГАТЕЛЬНЫЙ МЕТОД ---
+    private void updateColumnPositions(List<TaskColumn> columns) {
         for (int i = 0; i < columns.size(); i++) {
             TaskColumn c = columns.get(i);
             c.setPosition(i);
             taskColumnRepository.save(c);
         }
-
-        return column;
     }
 }

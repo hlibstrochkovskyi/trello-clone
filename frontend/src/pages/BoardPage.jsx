@@ -4,6 +4,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import useBoardStore from '../store/boardStore';
 import Column from '../components/column/Column';
 import CreateColumnSection from '../components/column/CreateColumnSection'; 
+// 1. IMPORT: The modal component is now imported
+import TaskDetailModal from '../components/modal/TaskDetailModal'; 
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -90,6 +92,9 @@ const BoardPage = () => {
                 </div>
             )}
         </Droppable>
+
+        {/* 2. ADDED: The modal now lives here and will appear when needed */}
+        <TaskDetailModal />
       </div>
     </DragDropContext>
   );

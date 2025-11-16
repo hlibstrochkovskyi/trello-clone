@@ -10,7 +10,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException; // Import this
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class BoardService {
@@ -24,34 +26,46 @@ public class BoardService {
         this.userRepository = userRepository;
     }
 
+    // Helper method to get current user
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
     @Transactional
     public Board createBoard(CreateBoardRequest request) {
-        // 1. Get the username of the currently logged-in user
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = getCurrentUser();
 
-        // 2. Find the User entity in the DB
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        // 3. Create the Board object manually
         Board board = new Board();
         board.setName(request.getName());
         board.setDescription(request.getDescription());
         board.setUser(user); // Link board to user
         board.setIsArchived(false);
 
-        // 4. Save to DB
         return boardRepository.save(board);
     }
 
     public List<Board> getAllUserBoards() {
-        // Get current user's name
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        // Return all boards belonging to this user
+        User user = getCurrentUser();
         return boardRepository.findByUserId(user.getId());
+    }
+
+    // --- NEW: Delete a board ---
+    @Transactional
+    public void deleteBoard(Long boardId) {
+        User user = getCurrentUser();
+
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Board not found"));
+
+        // Security Check: Make sure the user owns this board
+        if (!Objects.equals(board.getUser().getId(), user.getId())) {
+            // Throw an exception if user is not the owner
+            throw new RuntimeException("Access Denied: You do not own this board");
+        }
+
+        // Cascade delete will handle tasks and columns
+        boardRepository.delete(board);
     }
 }

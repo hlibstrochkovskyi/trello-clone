@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.example.trello_clone.dto.MoveTaskRequest;
 
-
 @RestController
 @RequestMapping("/api/columns/{columnId}/tasks")
 public class TaskController {
@@ -26,18 +25,26 @@ public class TaskController {
         return ResponseEntity.ok(task);
     }
 
-
     @GetMapping
-    public ResponseEntity<List<Task>>getTasks(@PathVariable Long columnId) {
+    public ResponseEntity<List<Task>> getTasks(@PathVariable Long columnId) {
         return ResponseEntity.ok(taskService.getTasksByColumnId(columnId));
     }
 
     @PutMapping("/{taskId}/move")
-    public ResponseEntity<Task> moveTask(@PathVariable Long columnId, // we don't use it, but it's in the URL
+    public ResponseEntity<Task> moveTask(@PathVariable Long columnId,
                                          @PathVariable Long taskId,
                                          @RequestBody MoveTaskRequest request) {
         Task updatedTask = taskService.moveTask(taskId, request);
         return ResponseEntity.ok(updatedTask);
     }
 
+    // === NEW METHOD TO ADD ===
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long columnId, // Not used, but in path
+                                           @PathVariable Long taskId) {
+        taskService.deleteTask(taskId);
+        // 204 No Content is the standard response for a successful DELETE
+        return ResponseEntity.noContent().build();
+    }
+    // ========================
 }

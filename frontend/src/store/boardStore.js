@@ -7,6 +7,44 @@ const useBoardStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
+  // --- NEW: Create a Board ---
+  createBoard: async (boardName) => {
+    try {
+        // Send POST request to /api/boards
+        const response = await api.post('/boards', { name: boardName, description: '' });
+        const newBoard = response.data;
+        
+        // Add the new board to the local 'boards' array
+        set((state) => ({
+            boards: [...state.boards, newBoard]
+        }));
+    } catch (error) {
+        console.error("Failed to create board:", error);
+        alert("Failed to create board");
+    }
+  },
+
+  // --- NEW: Delete a Board ---
+  deleteBoard: async (boardId) => {
+    // Save the current boards list for rollback in case of error
+    const previousBoards = get().boards;
+
+    // Optimistically remove the board from the UI
+    set((state) => ({
+        boards: state.boards.filter(b => b.id !== boardId)
+    }));
+    
+    try {
+        // Send DELETE request to /api/boards/{boardId}
+        await api.delete(`/boards/${boardId}`);
+    } catch (error)
+ {
+        console.error("Failed to delete board:", error);
+        set({ boards: previousBoards }); // Rollback on failure
+        alert("Failed to delete board");
+    }
+  },
+
   // Get a list of all user boards
   fetchBoards: async () => {
     set({ isLoading: true });
@@ -120,7 +158,7 @@ const useBoardStore = create((set, get) => ({
     }
   },
   
-  // --- NEW: Move Column Logic ---
+  // Move Column Logic
   moveColumn: async (columnId, sourceIndex, destIndex) => {
     const { currentBoard } = get();
     const boardId = currentBoard.id;
@@ -136,17 +174,97 @@ const useBoardStore = create((set, get) => ({
 
     // 2. Send API request to persist change
     try {
-        // PUT /api/boards/{boardId}/columns/{columnId}/move
         await api.put(`/boards/${boardId}/columns/${columnId}/move`, {
-            // Reusing MoveTaskRequest DTO structure for consistency
-            targetColumnId: columnId, // Not strictly needed, but simplifies DTO reuse
-            newPosition: destIndex    // The new index is the new position
+          targetColumnId: columnId,
+          newPosition: destIndex
         });
     } catch (error) {
         console.error("Failed to move column on server:", error);
         // 3. Rollback on failure
         set({ currentBoard: { ...currentBoard, columns: previousColumns } });
         alert("Failed to save column movement. Reverting changes.");
+    }
+  },
+
+  // Delete a task
+  deleteTask: async (columnId, taskId) => {
+    const previousBoard = JSON.parse(JSON.stringify(get().currentBoard));
+
+    set((state) => {
+        const board = JSON.parse(JSON.stringify(state.currentBoard));
+        const column = board.columns.find(c => c.id === columnId);
+        
+        if (column) {
+            column.tasks = column.tasks.filter(t => t.id !== taskId);
+            column.tasks.forEach((task, index) => {
+                task.position = index;
+            });
+        }
+        return { currentBoard: board };
+    });
+
+    try {
+        await api.delete(`/columns/${columnId}/tasks/${taskId}`);
+    } catch (error) {
+        console.error("Failed to delete task:", error);
+        set({ currentBoard: previousBoard });
+        alert("Failed to delete task. Reverting changes.");
+    }
+  },
+
+  // Delete a column
+  deleteColumn: async (columnId) => {
+    const { currentBoard } = get();
+    const boardId = currentBoard.id;
+    const previousBoard = JSON.parse(JSON.stringify(currentBoard));
+
+    set((state) => {
+        const board = JSON.parse(JSON.stringify(state.currentBoard));
+        board.columns = board.columns.filter(c => c.id !== columnId);
+        board.columns.forEach((col, index) => {
+            col.position = index;
+        });
+        return { currentBoard: board };
+    });
+
+    try {
+        await api.delete(`/boards/${boardId}/columns/${columnId}`);
+    } catch (error) {
+        console.error("Failed to delete column:", error);
+        set({ currentBoard: previousBoard });
+        alert("Failed to delete column. Reverting changes.");
+    }
+  },
+
+  // Update Task Details (Title, Description)
+  updateTaskDetails: async (taskId, newData) => {
+    const previousBoard = JSON.parse(JSON.stringify(get().currentBoard));
+    let taskFound = false;
+
+    set((state) => {
+        const board = JSON.parse(JSON.stringify(state.currentBoard));
+        
+        for (const column of board.columns) {
+            const task = column.tasks.find(t => t.id === taskId);
+            if (task) {
+                Object.assign(task, newData); 
+                taskFound = true;
+                break; 
+            }
+        }
+        
+        if (!taskFound) return {}; 
+        return { currentBoard: board };
+    });
+
+    if (!taskFound) return; 
+
+    try {
+        await api.put(`/tasks/${taskId}`, newData);
+    } catch (error) {
+        console.error("Failed to update task:", error);
+        set({ currentBoard: previousBoard });
+        alert("Failed to save task details. Reverting changes.");
     }
   }
 }));

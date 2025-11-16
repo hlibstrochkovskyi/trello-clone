@@ -2,6 +2,7 @@ package com.example.trello_clone.service;
 
 import com.example.trello_clone.dto.CreateTaskRequest;
 import com.example.trello_clone.dto.MoveTaskRequest;
+import com.example.trello_clone.dto.UpdateTaskRequest;
 import com.example.trello_clone.entity.Task;
 import com.example.trello_clone.entity.TaskColumn;
 import com.example.trello_clone.repository.TaskColumnRepository;
@@ -50,49 +51,84 @@ public class TaskService {
         TaskColumn targetColumn = taskColumnRepository.findById(request.getTargetColumnId())
                 .orElseThrow(() -> new RuntimeException("Target column not found"));
 
-        // 1. Получаем ВСЕ задачи из ИСХОДНОЙ колонки (отсортированные)
-        List<Task> sourceTasks = taskRepository.findByColumnIdOrderByPositionAsc(sourceColumn.getId());
+        Integer oldPosition = task.getPosition();
+        Integer newPosition = request.getNewPosition();
 
-        // 2. Удаляем перемещаемую задачу из старого списка (в памяти Java)
-        sourceTasks.removeIf(t -> t.getId().equals(taskId));
+        if (newPosition.equals(oldPosition) && sourceColumn.getId().equals(targetColumn.getId())) {
+            return task;
+        }
 
-        // 3. Если колонка изменилась, обновляем позиции в СТАРОЙ колонке (закрываем дырку)
+        task.setPosition(-1);
+        taskRepository.saveAndFlush(task);
+
         if (!sourceColumn.getId().equals(targetColumn.getId())) {
-            updateTaskPositions(sourceTasks); // Метод ниже
-        }
+            // Logic for moving to a DIFFERENT column
+            List<Task> sourceTasks = taskRepository.findByColumnIdOrderByPositionAsc(sourceColumn.getId());
+            sourceTasks.removeIf(t -> t.getId().equals(taskId));
+            updateTaskPositions(sourceTasks); // Update old column
 
-        // 4. Определяем список задач ЦЕЛЕВОЙ колонки
-        List<Task> targetTasks;
-        if (sourceColumn.getId().equals(targetColumn.getId())) {
-            targetTasks = sourceTasks; // Та же колонка
+            List<Task> targetTasks = taskRepository.findByColumnIdOrderByPositionAsc(targetColumn.getId());
+            targetTasks.add(newPosition, task);
+            updateTaskPositions(targetTasks); // Update new column
         } else {
-            targetTasks = taskRepository.findByColumnIdOrderByPositionAsc(targetColumn.getId());
+            // Logic for moving WITHIN the same column
+            List<Task> sourceTasks = taskRepository.findByColumnIdOrderByPositionAsc(sourceColumn.getId());
+            sourceTasks.removeIf(t -> t.getId().equals(taskId));
+            sourceTasks.add(newPosition, task);
+            updateTaskPositions(sourceTasks); // Update the single column
         }
 
-        // 5. Вставляем задачу в НОВУЮ позицию в списке
-        // Защита от выхода за границы массива
-        int newPos = request.getNewPosition();
-        if (newPos < 0) newPos = 0;
-        if (newPos > targetTasks.size()) newPos = targetTasks.size();
-
-        // Обновляем данные самой задачи
         task.setColumn(targetColumn);
-        targetTasks.add(newPos, task);
-
-        // 6. Пересчитываем позиции для ВСЕГО целевого списка (0, 1, 2...)
-        updateTaskPositions(targetTasks);
-
+        task.setPosition(newPosition);
         return taskRepository.save(task);
     }
 
-    // Вспомогательный метод: просто проставляет 0, 1, 2... всем задачам в списке
+    // Helper method to re-index positions
     private void updateTaskPositions(List<Task> tasks) {
         for (int i = 0; i < tasks.size(); i++) {
             Task t = tasks.get(i);
             t.setPosition(i);
-            taskRepository.save(t); // Hibernate отложит SQL до конца транзакции
+            taskRepository.save(t);
         }
     }
+
+    // === NEW METHOD TO ADD ===
+    @Transactional
+    public void deleteTask(Long taskId) {
+        // 1. Find the task to get its column and position
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        TaskColumn column = task.getColumn();
+
+        // 2. Delete the task
+        taskRepository.delete(task);
+
+        // 3. Reload the remaining tasks and re-index them
+        List<Task> remainingTasks = taskRepository.findByColumnIdOrderByPositionAsc(column.getId());
+        updateTaskPositions(remainingTasks);
+    }
+    // ========================
+
+    @Transactional
+    public Task updateTaskDetails(Long taskId, UpdateTaskRequest request) {
+        // 1. Находим задачу
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + taskId));
+
+        // 2. Обновляем поля (если они не null в запросе)
+        if (request.getTitle() != null) {
+            task.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            task.setDescription(request.getDescription());
+        }
+        // (Здесь в будущем можно добавить обновление dueDate, labels и т.д.)
+
+        // 3. Сохраняем изменения
+        return taskRepository.save(task);
+    }
+
 
     public List<Task> getTasksByColumnId(Long columnId) {
         return taskRepository.findByColumnIdOrderByPositionAsc(columnId);
