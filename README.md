@@ -26,10 +26,11 @@ The core feature is a stable, "ironclad" Drag & Drop (DND) system for both tasks
 ## 2. Table of Contents
 
 1.  [Introduction](#1-introduction)
-2.  [Tech Stack](#3-tech-stack)
-3.  [Core Features](#4-core-features)
-4.  [How to Run Locally (Docker)](#5-how-to-run-locally-docker)
-5.  [Gallery](#6-gallery)
+2.  [Table of Content](#2-table-of-contents)
+3.  [Tech Stack](#3-tech-stack)
+4.  [Core Features](#4-core-features)
+5.  [How to Run Locally (Docker)](#5-how-to-run-locally-docker)
+6.  [Gallery](#6-gallery)
 
 ## 3. Tech Stack
 
